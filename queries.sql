@@ -74,12 +74,12 @@ order by numeric_day, seller;
 --- анализ по возрастным группам
 select
     case
-        when c.age >= 16 and c.age <= 25 then '16-25'
-        when c.age >= 26 and c.age <= 40 then '26-40'
+        when age >= 16 and age <= 25 then '16-25'
+        when age >= 26 and age <= 40 then '26-40'
         else '40+'
     end as age_category,
-    count(distinct c.customer_id) as age_count
-from customers as с
+    count(distinct customer_id) as age_count
+from customers
 group by age_category
 order by age_category;
 
