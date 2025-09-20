@@ -1,6 +1,5 @@
 -- считается кол-во уникальных айди пользователей в таблице с клиентами
-select
-    count(distinct customer_id) as customers_count
+select count(distinct customer_id) as customers_count
 from customers;
 
 
@@ -11,23 +10,22 @@ select
     floor(sum(s.quantity * p.price)) as income
 from sales as s
 left join products as p
-    on p.product_id = s.product_id
+    on s.product_id = p.product_id
 left join employees as e
-    on e.employee_id = s.sales_person_id
+    on s.sales_person_id = e.employee_id
 group by seller;
-
 
 -- запрос для продавцов у кого выручка ниже среднего по сделкам
 with incomes as (
     select
-        concat(e.first_name, ' ', e.last_name) as seller,
         s.sales_id,
+        concat(e.first_name, ' ', e.last_name) as seller,
         sum(s.quantity * p.price) as income
     from sales as s
     left join products as p
-        on p.product_id = s.product_id
+        on s.product_id = p.product_id
     left join employees as e
-        on e.employee_id = s.sales_person_id
+        on s.sales_person_id = e.employee_id
     group by seller, s.sales_id
 ),
 
@@ -40,8 +38,7 @@ avg_inc as (
 ),
 
 total_income_avg as (
-    select
-        avg(avg_seller_income) as avg_total_income
+    select avg(avg_seller_income) as avg_total_income
     from avg_inc
 )
 
@@ -69,9 +66,9 @@ from (
         floor(sum(s.quantity * p.price)) as income
     from sales as s
     left join products as p
-        on p.product_id = s.product_id
+        on s.product_id = p.product_id
     left join employees as e
-        on e.employee_id = s.sales_person_id
+        on s.sales_person_id = e.employee_id
     group by seller, day_of_week, numeric_day
 ) as cte
 order by numeric_day, seller;
@@ -97,9 +94,9 @@ select
     floor(sum(p.price * s.quantity)) as income
 from sales as s
 left join customers as c
-    on c.customer_id = s.customer_id
+    on s.customer_id = c.customer_id
 left join products as p
-    on p.product_id = s.product_id
+    on s.product_id = p.product_id
 group by selling_month
 order by selling_month;
 
@@ -113,27 +110,30 @@ with sales_agg as (
         select
             c.customer_id,
             s.sales_id,
-            min(s.sale_date) over (partition by c.customer_id) as min_order_date,
-            s.sale_date
+            s.sale_date,
+            min(s.sale_date)
+                over (partition by c.customer_id)
+                as min_order_date
         from sales as s
         left join customers as c
-            on c.customer_id = s.customer_id
+            on s.customer_id = c.customer_id
     ) as a
     where sale_date = min_order_date
 )
 
 select
-    (c.first_name || ' ' || c.last_name) as customer,
     s.sale_date,
+    (c.first_name || ' ' || c.last_name) as customer,
     (e.first_name || ' ' || e.last_name) as seller
 from sales as s
 left join customers as c
-    on c.customer_id = s.customer_id
+    on s.customer_id = c.customer_id
 left join products as p
-    on p.product_id = s.product_id
+    on s.product_id = p.product_id
 left join employees as e
-    on e.employee_id = s.sales_person_id
-where p.price = 0
+    on s.sales_person_id = e.employee_id
+where
+    p.price = 0
     and s.sales_id in (select sales_id from sales_agg)
 group by c.customer_id, customer, s.sale_date, seller
 order by c.customer_id;
