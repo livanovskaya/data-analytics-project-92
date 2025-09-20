@@ -10,7 +10,7 @@ select concat(first_name, ' ', last_name) as seller,
 from sales s
          left join products p on p.product_id = s.product_id
          left join employees e on e.employee_id = s.sales_person_id
-group by 1;
+group by seller;
 
 
 -- запрос для продавцов у кого выручка ниже среднего по сделкам
@@ -21,12 +21,12 @@ with incomes as
           from sales s
                    left join products p on p.product_id = s.product_id
                    left join employees e on e.employee_id = s.sales_person_id
-          group by 1, 2),
+          group by seller, sales_id),
 
      avg_inc as (select seller,
                         floor(avg(income)) as avg_seller_income
                  from incomes
-                 group by 1),
+                 group by seller),
 
      total_income_avg as (select avg(avg_seller_income) as avg_total_income from avg_inc)
 
@@ -45,7 +45,7 @@ from (select concat(first_name, ' ', last_name)                                 
       from sales s
                left join products p on p.product_id = s.product_id
                left join employees e on e.employee_id = s.sales_person_id
-      group by 1, 2, 3) as cte
+      group by seller, day_of_week, numeric_day) as cte
 order by numeric_day, seller;
 
 
@@ -56,7 +56,7 @@ select case
            else '40+' end             age_category,
        count(distinct customer_id) as age_count
 from customers
-group by 1
+group by age_category
 order by age_category;
 
 
@@ -67,7 +67,7 @@ select TO_CHAR(sale_date, 'YYYY-MM') as selling_month,
 from sales s
          left join customers c on c.customer_id = s.customer_id
          left join products p on p.product_id = s.product_id
-group by 1
+group by selling_month
 order by selling_month;
 
 --- выгрузка по первой акционной покупке
