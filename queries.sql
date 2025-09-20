@@ -2,7 +2,6 @@
 select count(distinct customer_id) as customers_count
 from customers;
 
-
 --- запрос для топ 10 продавцов по выручке
 select
     concat(e.first_name, ' ', e.last_name) as seller,
@@ -43,13 +42,12 @@ total_income_avg as (
 )
 
 select
-    seller,
+    ai.seller as seller,
     avg_seller_income as average_income
-from avg_inc
-cross join total_income_avg
-where avg_seller_income < avg_total_income
-order by avg_seller_income;
-
+from avg_inc as ai
+cross join total_income_avg as ti
+where ai.avg_seller_income < ti.avg_total_income
+order by ai.avg_seller_income;
 --- нахождение суммы выручки по дням недели
 select
     seller,
@@ -73,7 +71,6 @@ from (
 ) as cte
 order by numeric_day, seller;
 
-
 --- анализ по возрастным группам
 select
     case
@@ -82,10 +79,9 @@ select
         else '40+'
     end as age_category,
     count(distinct customer_id) as age_count
-from customers
-group by age_category
-order by age_category;
-
+from customers с
+group by с.age_category
+order by c.age_category;
 
 ---- кол-во покупателей и выручка по месяцам
 select
