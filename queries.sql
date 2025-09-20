@@ -42,8 +42,8 @@ total_income_avg as (
 )
 
 select
-    ai.seller as seller,
-    avg_seller_income as average_income
+    ai.seller,
+    ai.avg_seller_income as average_income
 from avg_inc as ai
 cross join total_income_avg as ti
 where ai.avg_seller_income < ti.avg_total_income
@@ -74,14 +74,14 @@ order by numeric_day, seller;
 --- анализ по возрастным группам
 select
     case
-        when age >= 16 and age <= 25 then '16-25'
-        when age >= 26 and age <= 40 then '26-40'
+        when c.age >= 16 and c.age <= 25 then '16-25'
+        when c.age >= 26 and c.age <= 40 then '26-40'
         else '40+'
     end as age_category,
-    count(distinct customer_id) as age_count
-from customers с
-group by с.age_category
-order by c.age_category;
+    count(distinct c.customer_id) as age_count
+from customers as с
+group by age_category
+order by age_category;
 
 ---- кол-во покупателей и выручка по месяцам
 select
@@ -107,9 +107,7 @@ with sales_agg as (
             c.customer_id,
             s.sales_id,
             s.sale_date,
-            min(s.sale_date)
-                over (partition by c.customer_id)
-                as min_order_date
+            min(s.sale_date) over (partition by c.customer_id) as min_order_date
         from sales as s
         left join customers as c
             on s.customer_id = c.customer_id
@@ -130,6 +128,6 @@ left join employees as e
     on s.sales_person_id = e.employee_id
 where
     p.price = 0
-    and s.sales_id in (select sales_id from sales_agg)
+    and s.sales_id in (select sa.sales_id from sales_agg as sa)
 group by c.customer_id, customer, s.sale_date, seller
 order by c.customer_id;
