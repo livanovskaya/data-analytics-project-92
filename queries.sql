@@ -35,13 +35,13 @@ order by average_income;
 
 --- нахождение суммы выручки по дням недели
 select
-        concat(e.first_name, ' ', e.last_name) as seller,
-        lower(to_char(s.sale_date, 'day')) as day_of_week,
-        floor(sum(s.quantity * p.price)) as income
-    from sales as s
-    left join products as p on s.product_id = p.product_id
-    left join employees as e on s.sales_person_id = e.employee_id
-    group by seller, day_of_week, extract(isodow from s.sale_date)
+    concat(e.first_name, ' ', e.last_name) as seller,
+    lower(to_char(s.sale_date, 'day')) as day_of_week,
+    floor(sum(s.quantity * p.price)) as income
+from sales as s
+left join products as p on s.product_id = p.product_id
+left join employees as e on s.sales_person_id = e.employee_id
+group by seller, day_of_week, extract(isodow from s.sale_date)
 order by extract(isodow from s.sale_date), seller;
 
 --- анализ по возрастным группам
@@ -75,10 +75,12 @@ with first_orders as (
         s.sales_id,
         s.sale_date,
         c.customer_id,
-        row_number() over (partition by c.customer_id order by s.sale_date) as rn
+        row_number() over (partition by c.customer_id
+        order by s.sale_date) as rn
     from sales as s
     left join customers as c on s.customer_id = c.customer_id
 )
+
 select
     s.sale_date,
     (c.first_name || ' ' || c.last_name) as customer,
@@ -87,6 +89,6 @@ from sales as s
 left join customers as c on s.customer_id = c.customer_id
 left join products as p on s.product_id = p.product_id
 left join employees as e on s.sales_person_id = e.employee_id
-inner join first_orders fo on s.sales_id = fo.sales_id and fo.rn = 1
+inner join first_orders as fo on s.sales_id = fo.sales_id and fo.rn = 1
 where p.price = 0
 order by c.customer_id;
