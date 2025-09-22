@@ -76,8 +76,8 @@ with first_orders as (
         s.sale_date,
         c.customer_id,
         row_number() over (
-        partition by c.customer_id
-        order by s.sale_date
+            partition by c.customer_id
+            order by s.sale_date
         ) as rn
     from sales as s
     left join customers as c on s.customer_id = c.customer_id
