@@ -17,59 +17,32 @@ group by seller;
 -- запрос для продавцов у кого выручка ниже среднего по сделкам
 with incomes as (
     select
-        s.sales_id,
         concat(e.first_name, ' ', e.last_name) as seller,
-        sum(s.quantity * p.price) as income
+        s.quantity * p.price as income,
+        avg(s.quantity * p.price) over () as total_avg_income
     from sales as s
-    left join products as p
-        on s.product_id = p.product_id
-    left join employees as e
-        on s.sales_person_id = e.employee_id
-    group by seller, s.sales_id
-),
-
-avg_inc as (
-    select
-        seller,
-        floor(avg(income)) as avg_seller_income
-    from incomes
-    group by seller
-),
-
-total_income_avg as (
-    select avg(avg_seller_income) as avg_total_income
-    from avg_inc
+    left join products as p on s.product_id = p.product_id
+    left join employees as e on s.sales_person_id = e.employee_id
 )
 
 select
-    ai.seller,
-    ai.avg_seller_income as average_income
-from avg_inc as ai
-cross join total_income_avg as ti
-where ai.avg_seller_income < ti.avg_total_income
-order by ai.avg_seller_income;
+    seller,
+    floor(avg(income)) as average_income
+from incomes
+group by seller, total_avg_income
+having floor(avg(income)) < floor(total_avg_income)
+order by average_income;
+
 --- нахождение суммы выручки по дням недели
 select
-    seller,
-    day_of_week,
-    income
-from (
-    select
         concat(e.first_name, ' ', e.last_name) as seller,
-        lower(trim(to_char(s.sale_date, 'Day'))) as day_of_week,
-        case
-            when extract(dow from s.sale_date) = 0 then 9
-            else extract(dow from s.sale_date)
-        end as numeric_day,
+        lower(to_char(s.sale_date, 'day')) as day_of_week,
         floor(sum(s.quantity * p.price)) as income
     from sales as s
-    left join products as p
-        on s.product_id = p.product_id
-    left join employees as e
-        on s.sales_person_id = e.employee_id
-    group by seller, day_of_week, numeric_day
-) as cte
-order by numeric_day, seller;
+    left join products as p on s.product_id = p.product_id
+    left join employees as e on s.sales_person_id = e.employee_id
+    group by seller, day_of_week, extract(isodow from s.sale_date)
+order by extract(isodow from s.sale_date), seller;
 
 --- анализ по возрастным группам
 select
@@ -97,37 +70,23 @@ group by selling_month
 order by selling_month;
 
 --- выгрузка по первой акционной покупке
-with sales_agg as (
+with first_orders as (
     select
-        sales_id,
-        min_order_date,
-        sale_date
-    from (
-        select
-            c.customer_id,
-            s.sales_id,
-            s.sale_date,
-            min(s.sale_date) over (partition by c.customer_id) as min_order_date
-        from sales as s
-        left join customers as c
-            on s.customer_id = c.customer_id
-    ) as a
-    where sale_date = min_order_date
+        s.sales_id,
+        s.sale_date,
+        c.customer_id,
+        row_number() over (partition by c.customer_id order by s.sale_date) as rn
+    from sales as s
+    left join customers as c on s.customer_id = c.customer_id
 )
-
 select
     s.sale_date,
     (c.first_name || ' ' || c.last_name) as customer,
     (e.first_name || ' ' || e.last_name) as seller
 from sales as s
-left join customers as c
-    on s.customer_id = c.customer_id
-left join products as p
-    on s.product_id = p.product_id
-left join employees as e
-    on s.sales_person_id = e.employee_id
-where
-    p.price = 0
-    and s.sales_id in (select sa.sales_id from sales_agg as sa)
-group by c.customer_id, customer, s.sale_date, seller
+left join customers as c on s.customer_id = c.customer_id
+left join products as p on s.product_id = p.product_id
+left join employees as e on s.sales_person_id = e.employee_id
+inner join first_orders fo on s.sales_id = fo.sales_id and fo.rn = 1
+where p.price = 0
 order by c.customer_id;
